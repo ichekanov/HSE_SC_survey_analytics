@@ -2,8 +2,9 @@ import csv
 import requests
 from time import sleep
 import vk
-from private_data import VK_personal_token
+# from private_data import VK_personal_token
 
+VK_personal_token = "YOUR TOKEN"
 
 def get_polls(owner_id):
     ID = []
@@ -27,9 +28,9 @@ def get_polls(owner_id):
     return ID  # [(vote_id, vote_name), ...]
 
 
-def get_poll_results(poll_id):
+def get_poll_results(poll_id, owner_id):
     sleep(0.4)
-    poll_data = api.polls.getById(poll_id=poll_id)
+    poll_data = api.polls.getById(poll_id=poll_id, owner_id=owner_id)
     variants = [x['id'] for x in poll_data['answers']]
     variants_with_names = [(x['id'], x['text']) for x in poll_data['answers']]
     sleep(0.4)
@@ -48,7 +49,7 @@ def get_names(ids):
     return names  # [(last_name, first_name, id), ...]
 
 
-def write_to_csv(data, path="data/output1.csv"):
+def write_to_csv(data, path="output.csv"):
     ids = [x[2] for x in voters]
     with open(path, "w", newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
@@ -80,7 +81,7 @@ def compose_all(group_id):
     table = dict()
     for poll in polls:
         # ID for each variant
-        answers = get_poll_results(poll[0])
+        answers = get_poll_results(poll[0], group_id)
         results = list(answers.values())
         answers = list(answers)  # IDs and names of variants
         for i in range(len(results)):
@@ -95,8 +96,8 @@ def compose_all(group_id):
 
 def main():
     # group_id = "-206802048" # тестовая группа
-    group_id = "-207790088" # тестовая группа 2
-    # group_id = "-90904335" # группа СС
+    # group_id = "-207790088" # тестовая группа 2
+    group_id = "-90904335" # группа СС
     write_to_csv(compose_all(group_id))
 
 
