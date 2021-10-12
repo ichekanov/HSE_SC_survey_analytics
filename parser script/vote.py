@@ -11,6 +11,7 @@ def get_polls(owner_id):
     req = requests.get(
         url, params={'owner_id': owner_id, 'count': 5, 'offset': k})
     src = req.json()
+    print(src)
     mx = src["response"]["count"]
     print(f"Number of posts: {mx}")
     while k < mx and src["response"]["items"][0]["date"] > 1609459200:
@@ -98,9 +99,9 @@ def vote(poll_id, owner_id):
 
 
 def main():
-    # public = "-206802048" # тестовая группа
+    public = "-206802048" # тестовая группа
     # public = "-207790088" # тестовая группа 2
-    public = "-90904335"  # группа СС
+    # public = "-90904335"  # группа СС
     [vote(x, public) for x in get_polls(public)]
     # get_polls(public)
 
