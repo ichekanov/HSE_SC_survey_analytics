@@ -116,6 +116,7 @@ def write_to_csv(data, path="output.csv"):
             row = [k[0][1], k[1][1]]
             row += [1 if x in data[k] else 0 for x in ids]
             writer.writerow(row)
+    print("Done writing.")
 
 
 def compose_all(group_id, max_date):
