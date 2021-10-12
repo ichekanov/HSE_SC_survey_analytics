@@ -70,8 +70,6 @@ def vote(poll_id, owner_id):
             except:
                 print(ans)
 
-
-
     # done = False
     # while not done:
     #     try:
@@ -103,8 +101,8 @@ def main():
     # public = "-206802048" # тестовая группа
     # public = "-207790088" # тестовая группа 2
     public = "-90904335"  # группа СС
-    # [vote(x, public) for x in get_polls(public)]
-    get_polls(public)
+    [vote(x, public) for x in get_polls(public)]
+    # get_polls(public)
 
 
 if __name__ == "__main__":

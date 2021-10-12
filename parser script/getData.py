@@ -2,9 +2,10 @@ import csv
 import requests
 from time import sleep
 import vk
-# from private_data import VK_personal_token
+from private_data import VK_personal_token
 
-VK_personal_token = "YOUR TOKEN"
+# VK_personal_token = "YOUR TOKEN"
+
 
 def get_polls(owner_id):
     ID = []
@@ -14,7 +15,7 @@ def get_polls(owner_id):
         url, params={'owner_id': owner_id, 'count': 100, 'offset': k})
     src = req.json()
     mx = src["response"]["count"]
-    while k < mx and k<2:
+    while k < mx and k < 2:
         sleep(0.4)
         req = requests.get(url, params={'owner_id': owner_id, 'offset': k})
         src = req.json()
@@ -72,7 +73,6 @@ def write_to_csv(data, path="output.csv"):
 #                 voters_ids.add(x)
 #         voters = sorted(get_names(list(voters_ids)))
 #         write_to_csv(data, f"data/poll-{poll_id}.csv")
-            
 
 
 def compose_all(group_id):
@@ -97,7 +97,7 @@ def compose_all(group_id):
 def main():
     # group_id = "-206802048" # тестовая группа
     # group_id = "-207790088" # тестовая группа 2
-    group_id = "-90904335" # группа СС
+    group_id = "-90904335"  # группа СС
     write_to_csv(compose_all(group_id))
 
 
