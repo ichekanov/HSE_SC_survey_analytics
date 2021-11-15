@@ -1,27 +1,31 @@
 import csv
 import requests
-from time import sleep
+import time
 import vk
 from progress.bar import IncrementalBar
-# from private_data import VK_personal_token
-VK_personal_token = "YOUR TOKEN"
+from private_data import VK_personal_token
+# VK_personal_token = "YOUR TOKEN"
 
 
 def get_polls(owner_id, max_date):
     ID = []
     k = 0
-    url = f"https://api.vk.com/method/wall.get?owner_id={owner_id}&access_token={VK_personal_token}&v=5.131"
+    url = "https://api.vk.com/method/wall.get?v=5.131"
+    wait()
     req = requests.get(
-        url, params={'owner_id': owner_id, 'count': 100, 'offset': k})
+        url, params={'access_token': VK_personal_token, 'owner_id': owner_id})
     src = req.json()
     mx = src["response"]["count"]
-    print(f"Number of posts: {mx}")
+    print(f"Total number of posts: {mx}")
     bar = IncrementalBar('Posts', max=mx)
-    while k < mx and src["response"]["items"][0]["date"] > max_date:
-        sleep(0.4)
-        req = requests.get(url, params={'owner_id': owner_id, 'offset': k})
+    post_date = src["response"]["items"][0]["date"]
+    while k < mx and post_date > max_date:
+        wait()
+        req = requests.get(url, params={
+                           'access_token': VK_personal_token, 'owner_id': owner_id, 'offset': k})
         src = req.json()
         posts = src["response"]["items"]
+        post_date = src["response"]["items"][0]["date"]
         for post in posts:
             if "attachments" in post:
                 for x in post["attachments"]:
@@ -29,20 +33,21 @@ def get_polls(owner_id, max_date):
                         ID.append((x["poll"]["id"], x["poll"]["question"]))
             k += 1
             bar.next()
-        # print(f" {k}")
     bar.finish()
     print("Done parsing!\n")
     return ID  # [(vote_id, vote_name), ...]
 
 
 def get_poll_results(poll_id, owner_id):
-    def get_poll_data():
-        sleep(0.4)
+    variants = []
+
+    def get_poll_data(): #todo переписать на requests
+        wait()
         poll_data = api.polls.getById(poll_id=poll_id, owner_id=owner_id)
         return poll_data
 
-    def get_voters():
-        sleep(0.4)
+    def get_voters(): #todo переписать на requests
+        wait()
         try:
             votes = api.polls.getVoters(poll_id=poll_id, answer_ids=variants)
             return votes
@@ -53,24 +58,27 @@ def get_poll_results(poll_id, owner_id):
                 raise e
 
     def vote():
-        sleep(0.5)
+        wait()
         done = False
         captcha = False
         text = ""
         captcha_sid = ""
         while not done:
             if not captcha:
-                url = f"https://api.vk.com/method/polls.addVote?owner_id={owner_id}&poll_id={poll_id}&answer_ids={variants[-1]}&access_token={VK_personal_token}&v=5.131"
-                req = requests.get(url)
+                url = f"https://api.vk.com/method/polls.addVote?v=5.131"
+                wait()
+                req = requests.get(url, params={
+                                   'access_token': VK_personal_token, 'owner_id': owner_id, 'poll_id': poll_id, 'answer_ids': variants[-1]})
                 ans = req.json()
             else:
-                url = f"https://api.vk.com/method/polls.addVote?owner_id={owner_id}&poll_id={poll_id}&answer_ids={variants[-1]}&access_token={VK_personal_token}&captcha_sid={captcha_sid}&captcha_key={text}&v=5.131"
-                req = requests.get(url)
+                url = f"https://api.vk.com/method/polls.addVote?v=5.131"
+                wait()
+                req = requests.get(url, params={'access_token': VK_personal_token, 'owner_id': owner_id,
+                                   'poll_id': poll_id, 'answer_ids': variants[-1], 'captcha_sid': captcha_sid, 'captcha_key': text})
                 ans = req.json()
             if 'response' in ans:
                 print(f"Voted in {poll_id} for {variants_with_names[-1][1]}")
                 done = True
-                sleep(0.5)
             else:
                 try:
                     captcha_sid = ans['error']['captcha_sid']
@@ -93,17 +101,16 @@ def get_poll_results(poll_id, owner_id):
     # print(votes)
     users_by_variants = {}
     for k in range(len(variants_with_names)):
-        users_by_variants[variants_with_names[k]
-                          ] = votes[k]['users']['items']
+        users_by_variants[variants_with_names[k]] = votes[k]['users']['items']
     return users_by_variants  # {(variant_id, variant_name): [voters], ...}
 
 
-def get_names(ids):
-    # max number of requested users - 1000
-    sleep(0.4)
-    names = sorted([(x['last_name'], x['first_name'], x['id'])
-                    for x in api.users.get(user_ids=ids)])
-    return names  # [(last_name, first_name, id), ...]
+# def get_names(ids):
+#     # max number of requested users - 1000
+#     sleep(0.4)
+#     names = sorted([(x['last_name'], x['first_name'], x['id'])
+#                     for x in api.users.get(user_ids=ids)])
+#     return names  # [(last_name, first_name, id), ...]
 
 
 def write_to_csv(data, path="output.csv"):
@@ -119,36 +126,47 @@ def write_to_csv(data, path="output.csv"):
     print("Done writing.")
 
 
-def compose_all(group_id, max_date):
-    polls = get_polls(group_id, max_date)  # (poll_id, poll_name)
-    voters_ids = set()  # IDs of voters
-    table = dict()
-    for poll in polls:
-        # ID for each variant
-        answers = get_poll_results(poll[0], group_id)
-        results = list(answers.values())
-        answers = list(answers)  # IDs and names of variants
-        for i in range(len(results)):
-            for x in results[i]:
-                voters_ids.add(x)  # adding voters
-        for i, var in enumerate(answers):
-            table[(poll, var)] = results[i]
-        print(f"Successfully fetched {poll[1]}!\n")
-    global voters
-    voters = sorted(get_names(list(voters_ids)))  # names and IDs of voters
-    return table  # {((poll_id, poll_name), (var_id, var_name)): [voters], ...}
+# def compose_all(group_id, max_date):
+#     polls = get_polls(group_id, max_date)  # (poll_id, poll_name)
+#     voters_ids = set()  # IDs of voters
+#     table = dict()
+#     for poll in polls:
+#         # ID for each variant
+#         answers = get_poll_results(poll[0], group_id)
+#         results = list(answers.values())
+#         answers = list(answers)  # IDs and names of variants
+#         for i in range(len(results)):
+#             for x in results[i]:
+#                 voters_ids.add(x)  # adding voters
+#         for i, var in enumerate(answers):
+#             table[(poll, var)] = results[i]
+#         print(f"Successfully fetched {poll[1]}!\n")
+#     global voters
+#     voters = sorted(get_names(list(voters_ids)))  # names and IDs of voters
+#     return table  # {((poll_id, poll_name), (var_id, var_name)): [voters], ...}
+
+
+def wait(): # блокируем выполнение программы для сохранения задержек между запросами
+    global last_request
+    while (time.time() - last_request) < 0.4:
+        time.sleep(0.05)
+    last_request = time.time()
 
 
 def main():
-    # group_id = "-206802048"  # тестовая группа
+    group_id = "-206802048"  # тестовая группа
     # group_id = "-207790088" # тестовая группа 2
-    group_id = "-90904335"  # группа СС
+    # group_id = "-90904335"  # группа СС
     max_date = 1609459200  # самая ранняя дата, за которую надо получить данные
-    write_to_csv(compose_all(group_id, max_date))
+    # write_to_csv(compose_all(group_id, max_date))
+    polls = get_polls(group_id, max_date)
+    for poll in polls:
+        get_poll_results(poll[0], group_id)
 
 
 if __name__ == "__main__":
     session = vk.Session(access_token=VK_personal_token)
     api = vk.API(session, v='5.131', lang='ru')
     voters = []
+    last_request = time.time()
     main()
