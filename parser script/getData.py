@@ -2,7 +2,6 @@ import csv
 import requests
 from os import mkdir
 import time
-import vk
 from progress.bar import IncrementalBar
 # from private_data import VK_personal_token
 VK_personal_token = "YOUR TOKEN"
@@ -189,8 +188,6 @@ def main():
 
 
 if __name__ == "__main__":
-    session = vk.Session(access_token=VK_personal_token)
-    api = vk.API(session, v='5.131', lang='ru')
     voters = []
     last_request = time.time()
     main()
