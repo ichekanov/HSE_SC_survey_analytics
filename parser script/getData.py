@@ -110,7 +110,7 @@ def get_poll_results(poll_id, owner_id):
     # print(votes)
     users_by_variants = {}
     with open("data/users.txt", "a", encoding="utf-8") as f:
-        for k in range(len(variants_with_names)):
+        for k in range(len(variants_with_names)-1):
             users_by_variants[variants_with_names[k]
                               ] = votes[k]['users']['items']
             f.writelines([str(m)+"\n" for m in votes[k]['users']['items']])
