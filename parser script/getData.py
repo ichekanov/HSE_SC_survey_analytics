@@ -7,7 +7,7 @@ from progress.bar import IncrementalBar
 VK_personal_token = "YOUR TOKEN"
 
 
-def get_polls(owner_id, max_date):
+def get_polls(owner_id, start, end):
     ID = []
     k = 0
     url = "https://api.vk.com/method/wall.get?v=5.131"
@@ -15,11 +15,18 @@ def get_polls(owner_id, max_date):
     req = requests.get(
         url, params={'access_token': VK_personal_token, 'owner_id': owner_id})
     src = req.json()
-    mx = src["response"]["count"]
-    print(f"Total number of posts: {mx}")
-    bar = IncrementalBar('Posts', max=mx)
     post_date = src["response"]["items"][0]["date"]
-    while k < mx and post_date > max_date:
+    mx = src["response"]["count"]
+    while post_date > end and k+20 < mx:
+        k += 20
+        wait()
+        req = requests.get(url, params={
+                           'access_token': VK_personal_token, 'owner_id': owner_id, 'offset': k})
+        src = req.json()
+        post_date = src["response"]["items"][0]["date"]
+    print(f"Total number of posts: {mx-k}")
+    bar = IncrementalBar('Posts', max=(mx-k))
+    while k < mx and post_date > start:
         wait()
         req = requests.get(url, params={
                            'access_token': VK_personal_token, 'owner_id': owner_id, 'offset': k})
@@ -178,9 +185,14 @@ def main():
     # group_id = "-206802048"  # тестовая группа
     # group_id = "-207790088" # тестовая группа 2
     group_id = "-90904335"  # группа СС
-    t = "01.01.2020"  # самая ранняя дата, за которую надо получить данные
-    max_date = time.mktime(time.strptime(t, "%d.%m.%Y"))
-    polls = get_polls(group_id, max_date)
+    start = "01.01.2019"  # самая ранняя дата, за которую надо получить данные
+    end = "01.01.2020"  # самая поздняя дата, за которую надо получить данные
+    min_date = time.mktime(time.strptime(start, "%d.%m.%Y"))
+    max_date = time.mktime(time.strptime(end, "%d.%m.%Y"))
+    if min_date >= max_date:
+        print("Дата начала промежутка (start) должна быть меньше даты конца (end)!")
+        return
+    polls = get_polls(group_id, min_date, max_date)
     for poll in polls:
         results = get_poll_results(poll[0], group_id)
         write_csv(poll, results, group_id)
